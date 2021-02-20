@@ -12,19 +12,25 @@ def listDHCPLeases():
     lines = r.stdout.split('\n')[2:] # remove headers
     for i in range(0, len(lines) - 1):
         lines[i] = list(filter(None, lines[i].split(' ')))[4:][:-1]
-        lines[i][0] = lines[i][0].split('/')[0] # remove CIDR from IPv4
+        try:
+            lines[i][0] = lines[i][0].split('/')[0] # remove CIDR from IPv4
+        except IndexError:
+            continue
     return lines
 
-def runSSH(ipv4) {
-    
-}
-
-def createCursesMenu(leases):
-    menu = CursesMenu("SSH Jumper", "canterlot.intranet")
+def createCursesMenu(leases, username):
+    menu = CursesMenu("SSH Jumper", username+"@canterlot.intranet")
     for lease in leases:
-        item = FunctionItem(lease[0] + " (" + lease[1] + ")", runSSH, [lease[0]])
+        if not lease:
+            continue
+        item = CommandItem(username+"@"+lease[1] + " (" + lease[0] + ")", "/bin/sh -c \"ssh -v -o StrictHostKeychecking=no "+username+"@"+lease[0]+"; echo -n 'Session ended'; read -s -n 1 -p '...'\"")
         menu.append_item(item)
     return menu
 
 if __name__ == "__main__":
-    createCursesMenu(listDHCPLeases()).show()
+    print("canterlot.intranet jumper")
+    username = input("Log in as user >> ")
+    if not username:
+        print("Using \"root\"...")
+        username = "root"
+    createCursesMenu(listDHCPLeases(), username).show()
